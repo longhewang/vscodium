@@ -1,0 +1,84 @@
+name: Dev - Windows installers
+
+on:
+  push:
+    branches:
+      - dev
+    paths-ignore:
+      - "**/*.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dev-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-2022
+    defaults:
+      run:
+        shell: bash
+    env:
+      APP_NAME: VSCodium
+      BINARY_NAME: codium
+      ORG_NAME: ${{ github.repository_owner }}
+      GH_REPO_PATH: ${{ github.repository }}
+      ASSETS_REPOSITORY: ${{ github.repository }}
+      CI_BUILD: "no"
+      OS_NAME: windows
+      VSCODE_ARCH: x64
+      VSCODE_QUALITY: stable
+      SHOULD_BUILD: "yes"
+      SHOULD_BUILD_REH: "no"
+      SHOULD_BUILD_REH_WEB: "no"
+      SHOULD_BUILD_MSI: "no"
+      SHOULD_BUILD_MSI_NOUP: "no"
+      npm_config_arch: x64
+      npm_config_target_arch: x64
+      npm_config_python: python
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Verify build tools
+        run: |
+          node --version
+          python --version
+          jq --version
+          rustup --version
+          cargo --version
+          7z.exe i
+
+      - name: Fetch pinned VS Code source
+        run: ./get_repo.sh
+
+      - name: Build application and CLI
+        run: ./build.sh
+
+      - name: Package EXE and ZIP installers
+        run: ./prepare_assets.sh
+
+      - name: Generate checksums
+        run: ./prepare_checksums.sh
+
+      - name: Upload installers
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: windows-x64-installers
+          path: assets/
+          if-no-files-found: error
+          retention-days: 14
