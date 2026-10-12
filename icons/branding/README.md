@@ -3,7 +3,8 @@
 `logo.svg` contains the three original vector paths extracted from the supplied
 Illustrator file's PDF-compatible data. Colors match the PNG reference:
 `#859acf`, `#536eb3`, and `#1e489e`. The background is transparent; the square
-canvas adds padding without stretching the mark.
+canvas fits the mark edge-to-edge horizontally and centers it vertically without
+stretching it.
 
 `logo-1024.png` is the SVG raster export. Regenerate Windows resources with:
 

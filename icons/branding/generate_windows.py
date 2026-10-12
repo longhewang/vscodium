@@ -21,8 +21,8 @@ def stamp(size, logo_size, position=None, transparent=False):
 
 def main():
     SOURCE.resize((256, 256), Image.Resampling.LANCZOS).save(WIN / 'code.ico', sizes=SIZES)
-    stamp((70, 70), 64, transparent=True).save(WIN / 'code_70x70.png')
-    stamp((150, 150), 128, transparent=True).save(WIN / 'code_150x150.png')
+    stamp((70, 70), 70, transparent=True).save(WIN / 'code_70x70.png')
+    stamp((150, 150), 150, transparent=True).save(WIN / 'code_150x150.png')
     # Keep the file-type pictogram and replace its branding badge.
     for path in sorted(WIN.glob('*.ico')):
         if path.name == 'code.ico':
