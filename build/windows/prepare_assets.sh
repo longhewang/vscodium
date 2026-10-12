@@ -7,7 +7,7 @@ npm run gulp "vscode-win32-${VSCODE_ARCH}-inno-updater"
 # . ../build/windows/appx/build.sh
 
 if [[ "${SHOULD_BUILD_ZIP}" != "no" ]]; then
-  7z.exe a -tzip "../assets/${APP_NAME}-win32-${VSCODE_ARCH}-${RELEASE_VERSION}.zip" -x!CodeSignSummary*.md -x!tools "../VSCode-win32-${VSCODE_ARCH}/*" -r
+  7z.exe a -tzip -mx=9 "../assets/${APP_NAME}-win32-${VSCODE_ARCH}-${RELEASE_VERSION}.zip" -x!CodeSignSummary*.md -x!tools "../VSCode-win32-${VSCODE_ARCH}/*" -r
 fi
 
 if [[ "${SHOULD_BUILD_EXE_SYS}" != "no" ]]; then

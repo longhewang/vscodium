@@ -38,16 +38,24 @@ The focused checks run locally or in CI against patched source:
 node dev/test_rt_menu_patch.cjs <patched-vscode-directory>
 ```
 
-## Windows MSI build
+## 6GPRT Windows ZIP build
 
 Pushes to `dev` trigger `.github/workflows/dev-windows.yml`. It builds Windows x64
-and uploads `windows-x64-msi`, containing one unsigned Chinese MSI and checksums.
-The portable ZIP, EXE installers, and standalone CLI archive are excluded from
-this artifact; the application's CLI is still compiled and included.
+and uploads `6GPRT-windows-x64-zip`, containing only the portable
+`6GPRT-win32-x64-<version>.zip`. MSI, EXE setup packages, checksum sidecars and
+standalone CLI archives are excluded. The application's CLI is compiled and
+included in the portable application. ZIP uses maximum Deflate compression;
+the GitHub artifact wrapper uses no additional compression.
 
-The MSI embeds its cabinet with high compression. The workflow uses WiX v3 from
-the Windows runner. `MSI_CULTURE=zh-cn` and `MSI_SKIP_TRANSLATIONS=yes` build a
-single-culture installer without requiring SDK 10.0.17763.0's translation scripts.
-Other workflows retain the existing English-base multilingual MSI behavior.
-GitHub artifact downloads remain ZIP containers; extract the `.msi` from that ZIP.
-The installer format changes download packaging, not the application's installed size.
+The stable application's display name and executable are `6GPRT` and
+`6GPRT.exe`. Its command-line entry is `bin/6gprt.cmd`, with the tunnel binary
+`bin/6gprt-tunnel.exe`. Digits are valid at the start of Windows file names.
+The URI protocol is `gprt` because URI schemes must start with a letter.
+The policy/registry product identifier is `GPRT`; Windows application IDs and
+installer GUIDs are distinct from VSCodium. Stable user data and extensions use
+6GPRT-specific locations, including `%APPDATA%/6GPRT` and `%USERPROFILE%/.6gprt`.
+
+This dev ZIP build disables the upstream VSCodium update feed. It is distributed
+through this fork's GitHub build artifacts. `dev/build.sh -p` likewise creates a
+Windows portable ZIP by default. Existing MSI source and tooling remain available
+for other workflows, and Insiders branding is unchanged.

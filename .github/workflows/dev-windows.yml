@@ -1,4 +1,4 @@
-name: Dev - Windows installers
+name: Dev - 6GPRT Windows ZIP
 
 on:
   push:
@@ -22,8 +22,8 @@ jobs:
       run:
         shell: bash
     env:
-      APP_NAME: VSCodium
-      BINARY_NAME: codium
+      APP_NAME: 6GPRT
+      BINARY_NAME: 6gprt
       ORG_NAME: ${{ github.repository_owner }}
       GH_REPO_PATH: ${{ github.repository }}
       ASSETS_REPOSITORY: ${{ github.repository }}
@@ -34,13 +34,12 @@ jobs:
       SHOULD_BUILD: "yes"
       SHOULD_BUILD_REH: "no"
       SHOULD_BUILD_REH_WEB: "no"
-      SHOULD_BUILD_MSI: "yes"
+      SHOULD_BUILD_MSI: "no"
       SHOULD_BUILD_MSI_NOUP: "no"
-      SHOULD_BUILD_ZIP: "no"
+      SHOULD_BUILD_ZIP: "yes"
       SHOULD_BUILD_EXE_SYS: "no"
       SHOULD_BUILD_EXE_USR: "no"
-      MSI_CULTURE: zh-cn
-      MSI_SKIP_TRANSLATIONS: "yes"
+      DISABLE_UPDATE: "yes"
       npm_config_arch: x64
       npm_config_target_arch: x64
       npm_config_python: python
@@ -68,22 +67,6 @@ jobs:
           cargo --version
           7z.exe i
 
-      - name: Locate WiX v3 tools
-        shell: pwsh
-        run: |
-          $wixRoot = $env:WIX
-          if (-not $wixRoot -or -not (Test-Path (Join-Path $wixRoot "bin\candle.exe"))) {
-            $wixRoot = (Get-ChildItem "${env:ProgramFiles(x86)}\WiX Toolset*" -Directory |
-              Where-Object { Test-Path (Join-Path $_.FullName "bin\candle.exe") } |
-              Select-Object -First 1).FullName
-          }
-          if (-not $wixRoot) { throw "WiX v3 is required on the Windows runner" }
-          $wixRoot = $wixRoot.TrimEnd("\") + "\"
-          foreach ($tool in "heat.exe", "candle.exe", "light.exe") {
-            if (-not (Test-Path (Join-Path $wixRoot "bin\$tool"))) { throw "Missing WiX tool: $tool" }
-          }
-          "WIX=$wixRoot" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-
       - name: Fetch pinned VS Code source
         run: ./get_repo.sh
 
@@ -96,22 +79,22 @@ jobs:
       - name: Build application and CLI
         run: ./build.sh
 
-      - name: Package Chinese MSI installer
+      - name: Verify 6GPRT application identity
+        run: |
+          test -f VSCode-win32-x64/6GPRT.exe
+          test -f VSCode-win32-x64/bin/6gprt.cmd
+          node -e "const p=require('./VSCode-win32-x64/resources/app/product.json'); const a=require('node:assert/strict'); a.equal(p.nameShort,'6GPRT'); a.equal(p.nameLong,'6GPRT'); a.equal(p.applicationName,'6gprt'); a.equal(p.urlProtocol,'gprt'); a.equal(p.win32RegValueName,'GPRT');"
+
+      - name: Package portable ZIP
         env:
           SHOULD_BUILD_CLI: "no"
         run: ./prepare_assets.sh
 
-      - name: Generate checksums
-        run: ./prepare_checksums.sh
-
-      - name: Upload installers
+      - name: Upload portable ZIP
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: windows-x64-msi
-          path: |
-            assets/*.msi
-            assets/*.msi.sha256
-            assets/*.msi.sha1
+          name: 6GPRT-windows-x64-zip
+          path: assets/6GPRT-win32-x64-*.zip
           compression-level: 0
           if-no-files-found: error
           retention-days: 14

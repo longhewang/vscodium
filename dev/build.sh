@@ -5,13 +5,21 @@
 # to run with Bash: "C:\Program Files\Git\bin\bash.exe" ./dev/build.sh
 ###
 
-export APP_NAME="VSCodium"
+export APP_NAME="6GPRT"
 export ASSETS_REPOSITORY="VSCodium/vscodium"
-export BINARY_NAME="codium"
+export BINARY_NAME="6gprt"
 export CI_BUILD="no"
 export GH_REPO_PATH="VSCodium/vscodium"
 export ORG_NAME="VSCodium"
 export SHOULD_BUILD="yes"
+export SHOULD_BUILD_REH="no"
+export SHOULD_BUILD_REH_WEB="no"
+export SHOULD_BUILD_ZIP="yes"
+export SHOULD_BUILD_EXE_SYS="no"
+export SHOULD_BUILD_EXE_USR="no"
+export SHOULD_BUILD_MSI="no"
+export SHOULD_BUILD_MSI_NOUP="no"
+export DISABLE_UPDATE="yes"
 export SKIP_ASSETS="yes"
 export SKIP_BUILD="no"
 export SKIP_SOURCE="no"
@@ -22,6 +30,7 @@ export VSCODE_SKIP_NODE_VERSION_CHECK="yes"
 while getopts ":ilops" opt; do
   case "$opt" in
     i)
+      export APP_NAME="VSCodium"
       export ASSETS_REPOSITORY="VSCodium/vscodium-insiders"
       export BINARY_NAME="codium-insiders"
       export VSCODE_QUALITY="insider"
@@ -158,5 +167,6 @@ if [[ "${SKIP_ASSETS}" == "no" ]]; then
     echo "CERTIFICATE_OSX_APPLE_ID: ${CERTIFICATE_OSX_APPLE_ID}"
   fi
 
-  . prepare_assets.sh
+  # Include the application CLI, but do not create a second standalone CLI archive.
+  SHOULD_BUILD_CLI="no" . prepare_assets.sh
 fi

@@ -24,7 +24,7 @@ ICO files include 16, 20, 24, 32, 48, 64, 96, 128 and 256 pixel representations.
 Generated resources are committed, so GitHub builds need no icon tooling.
 Existing macOS, Linux and Insiders resources are outside this Windows change.
 
-The `Dev - Windows installers` workflow builds `dev` on pushes or manual dispatch.
-Download `windows-x64-msi` after it succeeds: it contains one unsigned Chinese
-MSI installer and its checksums. The dev build excludes portable ZIP and EXE
-packages. GitHub wraps the artifact download in a ZIP; the installer inside is MSI.
+The `Dev - 6GPRT Windows ZIP` workflow builds `dev` on pushes or manual dispatch.
+Download `6GPRT-windows-x64-zip` after it succeeds. It contains only the portable
+`6GPRT-win32-x64-<version>.zip`; no MSI or EXE installers are generated. The stable
+app is named `6GPRT`, using the same supplied company logo.
