@@ -1,0 +1,27 @@
+{
+  "name": "rt-menu-example",
+  "displayName": "RT Menu Example",
+  "publisher": "longhewang",
+  "version": "0.0.1",
+  "engines": { "vscode": "^1.135.0" },
+  "main": "./extension.cjs",
+  "contributes": {
+    "commands": [
+      { "command": "rt.example.trace", "title": "%trace%", "category": "RT" }
+    ],
+    "submenus": [
+      { "id": "rt.example.tools", "label": "%tools%" }
+    ],
+    "menus": {
+      "menuBar/rt": [
+        { "command": "rt.example.trace", "group": "1_run@10" }
+      ],
+      "menuBar/main": [
+        { "submenu": "rt.example.tools", "group": "navigation@7.7" }
+      ],
+      "rt.example.tools": [
+        { "command": "rt.example.trace", "group": "1_run@10" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,254 @@
+diff --git a/src/vs/platform/actions/common/actions.ts b/src/vs/platform/actions/common/actions.ts
+--- a/src/vs/platform/actions/common/actions.ts
++++ b/src/vs/platform/actions/common/actions.ts
+@@ -120,6 +120,7 @@
+ 	static readonly LayoutControlMenuSubmenu = new MenuId('LayoutControlMenuSubmenu');
+ 	static readonly LayoutControlMenu = new MenuId('LayoutControlMenu');
+ 	static readonly MenubarMainMenu = new MenuId('MenubarMainMenu');
++	static readonly MenubarRTMenu = new MenuId('MenubarRTMenu');
+ 	static readonly MenubarAppearanceMenu = new MenuId('MenubarAppearanceMenu');
+ 	static readonly MenubarDebugMenu = new MenuId('MenubarDebugMenu');
+ 	static readonly MenubarEditMenu = new MenuId('MenubarEditMenu');
+diff --git a/src/vs/workbench/browser/parts/titlebar/menubar.contribution.ts b/src/vs/workbench/browser/parts/titlebar/menubar.contribution.ts
+--- a/src/vs/workbench/browser/parts/titlebar/menubar.contribution.ts
++++ b/src/vs/workbench/browser/parts/titlebar/menubar.contribution.ts
+@@ -4,6 +4,9 @@
+  *--------------------------------------------------------------------------------------------*/
+ 
+ import { localize } from '../../../../nls.js';
++import { language } from '../../../../base/common/platform.js';
++import { CommandsRegistry } from '../../../../platform/commands/common/commands.js';
++import { IQuickInputService } from '../../../../platform/quickinput/common/quickInput.js';
+ import { MenuId, MenuRegistry } from '../../../../platform/actions/common/actions.js';
+ import { IsMacNativeContext } from '../../../../platform/contextkey/common/contextkeys.js';
+ 
+@@ -67,6 +70,26 @@
+ 	order: 7
+ });
+ 
++// Fork-owned labels also work with language packs that do not contain these keys.
++const rtTitle = language.startsWith('zh') ? '射线追踪(&&R)' : '&&RT';
++MenuRegistry.appendMenuItem(MenuId.MenubarMainMenu, {
++	submenu: MenuId.MenubarRTMenu,
++	title: { value: rtTitle, original: 'RT', mnemonicTitle: rtTitle },
++	order: 7.5
++});
++
++CommandsRegistry.registerCommand('workbench.action.rt.showCommands', accessor => {
++	accessor.get(IQuickInputService).quickAccess.show('>RT ');
++});
++MenuRegistry.appendMenuItem(MenuId.MenubarRTMenu, {
++	command: {
++		id: 'workbench.action.rt.showCommands',
++		title: language.startsWith('zh') ? '射线追踪命令...' : 'RT Commands...'
++	},
++	group: '9_tools',
++	order: 1
++});
++
+ MenuRegistry.appendMenuItem(MenuId.MenubarMainMenu, {
+ 	submenu: MenuId.MenubarHelpMenu,
+ 	title: {
+diff --git a/src/vs/workbench/services/actions/common/menusExtensionPoint.ts b/src/vs/workbench/services/actions/common/menusExtensionPoint.ts
+--- a/src/vs/workbench/services/actions/common/menusExtensionPoint.ts
++++ b/src/vs/workbench/services/actions/common/menusExtensionPoint.ts
+@@ -35,6 +35,16 @@
+ }
+ 
+ const apiMenus: IAPIMenu[] = [
++	{
++		key: 'menuBar/rt',
++		id: MenuId.MenubarRTMenu,
++		description: localize('menus.rt', "The RT (ray tracing) menu")
++	},
++	{
++		key: 'menuBar/main',
++		id: MenuId.MenubarMainMenu,
++		description: localize('menus.main', "Top-level menus (submenu contributions only)")
++	},
+ 	{
+ 		key: 'commandPalette',
+ 		id: MenuId.CommandPalette,
+@@ -1091,6 +1101,10 @@
+ 				let item: IMenuItem | ISubmenuItem;
+ 
+ 				if (schema.isMenuItem(menuItem)) {
++					if (menu.id === MenuId.MenubarMainMenu) {
++						collector.error(localize('menus.main.submenuOnly', "Top-level menu contributions must reference a submenu."));
++						continue;
++					}
+ 					const command = MenuRegistry.getCommand(menuItem.command);
+ 					const alt = menuItem.alt && MenuRegistry.getCommand(menuItem.alt) || undefined;
+ 
+@@ -1152,6 +1166,10 @@
+ 					continue;
+ 				}
+ 
++				// A menu bar has one ordered row; group prefixes only apply inside menus.
++				if (menu.id === MenuId.MenubarMainMenu) {
++					item.group = undefined;
++				}
+ 				item.when = ContextKeyExpr.deserialize(menuItem.when);
+ 				_menuRegistrations.add(MenuRegistry.appendMenuItem(menu.id, item));
+ 			}
+diff --git a/src/vs/workbench/browser/parts/titlebar/menubarControl.ts b/src/vs/workbench/browser/parts/titlebar/menubarControl.ts
+--- a/src/vs/workbench/browser/parts/titlebar/menubarControl.ts
++++ b/src/vs/workbench/browser/parts/titlebar/menubarControl.ts
+@@ -131,11 +131,15 @@
+ 		this.menus = {};
+ 		this.topLevelTitles = {};
+ 
+-		const [, mainMenuActions] = this.mainMenu.getActions()[0];
+-		for (const mainMenuAction of mainMenuActions) {
+-			if (mainMenuAction instanceof SubmenuItemAction && typeof mainMenuAction.item.title !== 'string') {
+-				this.menus[mainMenuAction.item.title.original] = this.mainMenuDisposables.add(this.menuService.createMenu(mainMenuAction.item.submenu, this.contextKeyService, { emitEventsForSubmenuChanges: true }));
+-				this.topLevelTitles[mainMenuAction.item.title.original] = mainMenuAction.item.title.mnemonicTitle ?? mainMenuAction.item.title.value;
++		for (const [, mainMenuActions] of this.mainMenu.getActions()) {
++			for (const mainMenuAction of mainMenuActions) {
++				if (mainMenuAction instanceof SubmenuItemAction) {
++					const title = mainMenuAction.item.title;
++					// Extension submenu IDs are stable even when labels change or collide.
++					const id = typeof title === 'string' ? mainMenuAction.item.submenu.id : title.original;
++					this.menus[id] = this.mainMenuDisposables.add(this.menuService.createMenu(mainMenuAction.item.submenu, this.contextKeyService, { emitEventsForSubmenuChanges: true }));
++					this.topLevelTitles[id] = typeof title === 'string' ? title : title.mnemonicTitle ?? title.value;
++				}
+ 			}
+ 		}
+ 	}
+diff --git a/src/vs/platform/menubar/common/menubar.ts b/src/vs/platform/menubar/common/menubar.ts
+--- a/src/vs/platform/menubar/common/menubar.ts
++++ b/src/vs/platform/menubar/common/menubar.ts
+@@ -15,6 +15,8 @@
+ }
+ 
+ export interface IMenubarMenu {
++	/** Localized title for fork-owned and extension-contributed top-level menus. */
++	label?: string;
+ 	items: Array<MenubarMenuItem>;
+ }
+ 
+diff --git a/src/vs/workbench/electron-browser/parts/titlebar/menubarControl.ts b/src/vs/workbench/electron-browser/parts/titlebar/menubarControl.ts
+--- a/src/vs/workbench/electron-browser/parts/titlebar/menubarControl.ts
++++ b/src/vs/workbench/electron-browser/parts/titlebar/menubarControl.ts
+@@ -92,10 +92,13 @@
+ 		for (const topLevelMenuName of Object.keys(this.topLevelTitles)) {
+ 			const menu = this.menus[topLevelMenuName];
+ 			if (menu) {
+-				const menubarMenu: IMenubarMenu = { items: [] };
++				const menubarMenu: IMenubarMenu = { items: [], label: this.topLevelTitles[topLevelMenuName] };
+ 				const menuActions = getFlatContextMenuActions(menu.getActions({ shouldForwardArgs: true }));
+ 				this.populateMenuItems(menuActions, menubarMenu, menubarData.keybindings);
+ 				if (menubarMenu.items.length === 0) {
++					if (topLevelMenuName.startsWith('api:')) {
++						continue; // An empty extension submenu must not block the entire native menu.
++					}
+ 					return false; // Menus are incomplete
+ 				}
+ 				menubarData.menus[topLevelMenuName] = menubarMenu;
+diff --git a/src/vs/platform/menubar/electron-main/menubar.ts b/src/vs/platform/menubar/electron-main/menubar.ts
+--- a/src/vs/platform/menubar/electron-main/menubar.ts
++++ b/src/vs/platform/menubar/electron-main/menubar.ts
+@@ -300,7 +300,7 @@
+ 		// File
+ 		if (this.shouldDrawMenu('File')) {
+ 			const fileMenu = new Menu();
+-			const fileMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mFile', comment: ['&& denotes a mnemonic'] }, "&&File")), submenu: fileMenu });
++			const fileMenuItem = new MenuItem({ id: 'File', label: this.mnemonicLabel(nls.localize({ key: 'mFile', comment: ['&& denotes a mnemonic'] }, "&&File")), submenu: fileMenu });
+ 			this.setMenuById(fileMenu, 'File');
+ 			menubar.append(fileMenuItem);
+ 		}
+@@ -308,7 +308,7 @@
+ 		// Edit
+ 		if (this.shouldDrawMenu('Edit')) {
+ 			const editMenu = new Menu();
+-			const editMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mEdit', comment: ['&& denotes a mnemonic'] }, "&&Edit")), submenu: editMenu });
++			const editMenuItem = new MenuItem({ id: 'Edit', label: this.mnemonicLabel(nls.localize({ key: 'mEdit', comment: ['&& denotes a mnemonic'] }, "&&Edit")), submenu: editMenu });
+ 			this.setMenuById(editMenu, 'Edit');
+ 			menubar.append(editMenuItem);
+ 		}
+@@ -316,7 +316,7 @@
+ 		// Selection
+ 		if (this.shouldDrawMenu('Selection')) {
+ 			const selectionMenu = new Menu();
+-			const selectionMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mSelection', comment: ['&& denotes a mnemonic'] }, "&&Selection")), submenu: selectionMenu });
++			const selectionMenuItem = new MenuItem({ id: 'Selection', label: this.mnemonicLabel(nls.localize({ key: 'mSelection', comment: ['&& denotes a mnemonic'] }, "&&Selection")), submenu: selectionMenu });
+ 			this.setMenuById(selectionMenu, 'Selection');
+ 			menubar.append(selectionMenuItem);
+ 		}
+@@ -324,7 +324,7 @@
+ 		// View
+ 		if (this.shouldDrawMenu('View')) {
+ 			const viewMenu = new Menu();
+-			const viewMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mView', comment: ['&& denotes a mnemonic'] }, "&&View")), submenu: viewMenu });
++			const viewMenuItem = new MenuItem({ id: 'View', label: this.mnemonicLabel(nls.localize({ key: 'mView', comment: ['&& denotes a mnemonic'] }, "&&View")), submenu: viewMenu });
+ 			this.setMenuById(viewMenu, 'View');
+ 			menubar.append(viewMenuItem);
+ 		}
+@@ -332,7 +332,7 @@
+ 		// Go
+ 		if (this.shouldDrawMenu('Go')) {
+ 			const gotoMenu = new Menu();
+-			const gotoMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mGoto', comment: ['&& denotes a mnemonic'] }, "&&Go")), submenu: gotoMenu });
++			const gotoMenuItem = new MenuItem({ id: 'Go', label: this.mnemonicLabel(nls.localize({ key: 'mGoto', comment: ['&& denotes a mnemonic'] }, "&&Go")), submenu: gotoMenu });
+ 			this.setMenuById(gotoMenu, 'Go');
+ 			menubar.append(gotoMenuItem);
+ 		}
+@@ -340,7 +340,7 @@
+ 		// Debug
+ 		if (this.shouldDrawMenu('Run')) {
+ 			const debugMenu = new Menu();
+-			const debugMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mRun', comment: ['&& denotes a mnemonic'] }, "&&Run")), submenu: debugMenu });
++			const debugMenuItem = new MenuItem({ id: 'Run', label: this.mnemonicLabel(nls.localize({ key: 'mRun', comment: ['&& denotes a mnemonic'] }, "&&Run")), submenu: debugMenu });
+ 			this.setMenuById(debugMenu, 'Run');
+ 			menubar.append(debugMenuItem);
+ 		}
+@@ -348,7 +348,7 @@
+ 		// Terminal
+ 		if (this.shouldDrawMenu('Terminal')) {
+ 			const terminalMenu = new Menu();
+-			const terminalMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mTerminal', comment: ['&& denotes a mnemonic'] }, "&&Terminal")), submenu: terminalMenu });
++			const terminalMenuItem = new MenuItem({ id: 'Terminal', label: this.mnemonicLabel(nls.localize({ key: 'mTerminal', comment: ['&& denotes a mnemonic'] }, "&&Terminal")), submenu: terminalMenu });
+ 			this.setMenuById(terminalMenu, 'Terminal');
+ 			menubar.append(terminalMenuItem);
+ 		}
+@@ -368,10 +368,12 @@
+ 		// Help
+ 		if (this.shouldDrawMenu('Help')) {
+ 			const helpMenu = new Menu();
+-			const helpMenuItem = new MenuItem({ label: this.mnemonicLabel(nls.localize({ key: 'mHelp', comment: ['&& denotes a mnemonic'] }, "&&Help")), submenu: helpMenu, role: 'help' });
++			const helpMenuItem = new MenuItem({ id: 'Help', label: this.mnemonicLabel(nls.localize({ key: 'mHelp', comment: ['&& denotes a mnemonic'] }, "&&Help")), submenu: helpMenu, role: 'help' });
+ 			this.setMenuById(helpMenu, 'Help');
+ 			menubar.append(helpMenuItem);
+ 		}
++
++		this.appendContributedMenus(menubar);
+ 
+ 		if (menubar.items && menubar.items.length > 0) {
+ 			this.doSetApplicationMenu(menubar);
+@@ -381,6 +383,26 @@
+ 
+ 		// Dispose of older menus after some time
+ 		this.menuGC.schedule();
++	}
++
++	private appendContributedMenus(menubar: Menu): void {
++		const builtins = new Set(['File', 'Edit', 'Selection', 'View', 'Go', 'Run', 'Terminal', 'Help', 'Preferences', 'Window']);
++		const entries = Object.entries(this.menubarMenus);
++		for (let index = 0; index < entries.length; index++) {
++			const [id, menuData] = entries[index];
++			if (builtins.has(id) || !menuData.label || menuData.items.length === 0) {
++				continue;
++			}
++			const submenu = new Menu();
++			this.setMenuById(submenu, id);
++			const followingIds = new Set(entries.slice(index + 1).map(([key]) => key));
++			const before = menubar.items.findIndex(item => followingIds.has(item.id));
++			menubar.insert(before < 0 ? menubar.items.length : before, new MenuItem({
++				id,
++				label: this.mnemonicLabel(menuData.label),
++				submenu
++			}));
++		}
+ 	}
+ 
+ 	private doSetApplicationMenu(menu: (Menu) | (null)): void {

@@ -26,8 +26,13 @@ fi
 PRODUCT_ID=$( powershell.exe -command "[guid]::NewGuid().ToString().ToUpper()" )
 PRODUCT_ID="${PRODUCT_ID%%[[:cntrl:]]}"
 
-CULTURE="en-us"
+CULTURE="${MSI_CULTURE:-en-us}"
 LANGIDS="1033"
+
+if [[ "${MSI_SKIP_TRANSLATIONS}" != "yes" && "${CULTURE}" != "en-us" ]]; then
+  echo "Set MSI_SKIP_TRANSLATIONS=yes when using a non-English MSI_CULTURE" >&2
+  exit 1
+fi
 
 SETUP_RELEASE_DIR=".\\releasedir"
 BINARY_DIR="..\\..\\..\\VSCode-win32-${VSCODE_ARCH}"
@@ -77,19 +82,23 @@ BuildSetupTranslationTransform() {
 "${WIX}bin\\candle.exe" -arch "${PLATFORM}" vscodium.wxs "Files-${OUTPUT_BASE_FILENAME}.wxs" -ext WixUIExtension -ext WixUtilExtension -ext WixNetFxExtension -dManufacturerName="VSCodium" -dAppCodeName="${PRODUCT_CODE}" -dAppName="${PRODUCT_NAME}" -dProductVersion="${RELEASE_VERSION%-insider}" -dProductId="${PRODUCT_ID}" -dBinaryDir="${BINARY_DIR}" -dIconDir="${ICON_DIR}" -dLicenseDir="${LICENSE_DIR}" -dSetupResourcesDir="${SETUP_RESOURCES_DIR}" -dCulture="${CULTURE}"
 "${WIX}bin\\light.exe" vscodium.wixobj "Files-${OUTPUT_BASE_FILENAME}.wixobj" -ext WixUIExtension -ext WixUtilExtension -ext WixNetFxExtension -spdb -cc "${TEMP}\\vscodium-cab-cache\\${PLATFORM}" -out "${SETUP_RELEASE_DIR}\\${OUTPUT_BASE_FILENAME}.msi" -loc "i18n\\vscodium.${CULTURE}.wxl" -cultures:"${CULTURE}" -sice:ICE60 -sice:ICE69
 
-BuildSetupTranslationTransform de-de 1031
-BuildSetupTranslationTransform es-es 3082
-BuildSetupTranslationTransform fr-fr 1036
-BuildSetupTranslationTransform it-it 1040
-# WixUI_Advanced bug: https://github.com/wixtoolset/issues/issues/5909
-# BuildSetupTranslationTransform ja-jp 1041
-BuildSetupTranslationTransform ko-kr 1042
-BuildSetupTranslationTransform ru-ru 1049
-BuildSetupTranslationTransform zh-cn 2052
-BuildSetupTranslationTransform zh-tw 1028
+# A single-culture build does not require the legacy Windows Installer SDK tools.
+if [[ "${MSI_SKIP_TRANSLATIONS}" != "yes" ]]; then
+  BuildSetupTranslationTransform de-de 1031
+  BuildSetupTranslationTransform es-es 3082
+  BuildSetupTranslationTransform fr-fr 1036
+  BuildSetupTranslationTransform it-it 1040
+  # WixUI_Advanced bug: https://github.com/wixtoolset/issues/issues/5909
+  # BuildSetupTranslationTransform ja-jp 1041
+  BuildSetupTranslationTransform ko-kr 1042
+  BuildSetupTranslationTransform ru-ru 1049
+  BuildSetupTranslationTransform zh-cn 2052
+  BuildSetupTranslationTransform zh-tw 1028
 
-# Add all supported languages to MSI Package attribute
-cscript "${PROGRAM_FILES_86}\\Windows Kits\\${WIN_SDK_MAJOR_VERSION}\\bin\\${WIN_SDK_FULL_VERSION}\\${PLATFORM}\\WiLangId.vbs" "${SETUP_RELEASE_DIR}\\${OUTPUT_BASE_FILENAME}.msi" Package "${LANGIDS}"
+  # Add all supported languages to MSI Package attribute
+  cscript "${PROGRAM_FILES_86}\\Windows Kits\\${WIN_SDK_MAJOR_VERSION}\\bin\\${WIN_SDK_FULL_VERSION}\\${PLATFORM}\\WiLangId.vbs" "${SETUP_RELEASE_DIR}\\${OUTPUT_BASE_FILENAME}.msi" Package "${LANGIDS}"
+
+fi
 
 # Remove files we do not need any longer.
 rm -rf "${TEMP}\\vscodium-cab-cache"

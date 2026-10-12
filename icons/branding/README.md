@@ -25,6 +25,6 @@ Generated resources are committed, so GitHub builds need no icon tooling.
 Existing macOS, Linux and Insiders resources are outside this Windows change.
 
 The `Dev - Windows installers` workflow builds `dev` on pushes or manual dispatch.
-Download `windows-x64-installers` after it succeeds: it contains the ZIP and
-unsigned user/system EXE installers. MSI packaging is disabled in this workflow;
-its artwork is ready for a future MSI build.
+Download `windows-x64-msi` after it succeeds: it contains one unsigned Chinese
+MSI installer and its checksums. The dev build excludes portable ZIP and EXE
+packages. GitHub wraps the artifact download in a ZIP; the installer inside is MSI.
