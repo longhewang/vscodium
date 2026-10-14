@@ -31,7 +31,7 @@ diff --git a/src/vs/workbench/browser/parts/titlebar/menubar.contribution.ts b/s
 +MenuRegistry.appendMenuItem(MenuId.MenubarMainMenu, {
 +	submenu: MenuId.MenubarRTMenu,
 +	title: { value: rtTitle, original: 'RT', mnemonicTitle: rtTitle },
-+	order: 7.5
++	order: 2.5
 +});
 +
 +CommandsRegistry.registerCommand('workbench.action.rt.showCommands', accessor => {

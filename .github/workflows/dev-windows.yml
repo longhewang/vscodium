@@ -83,7 +83,7 @@ jobs:
         run: |
           test -f VSCode-win32-x64/6GPRT.exe
           test -f VSCode-win32-x64/bin/6gprt.cmd
-          node -e "const p=require('./VSCode-win32-x64/resources/app/product.json'); const a=require('node:assert/strict'); a.equal(p.nameShort,'6GPRT'); a.equal(p.nameLong,'6GPRT'); a.equal(p.applicationName,'6gprt'); a.equal(p.urlProtocol,'gprt'); a.equal(p.win32RegValueName,'GPRT');"
+          node -e "const p=require('./VSCode-win32-x64/resources/app/product.json'); const a=require('node:assert/strict'); a.equal(p.nameShort,'6GPRT'); a.equal(p.nameLong,'6GPRT'); a.equal(p.applicationName,'6gprt'); a.equal(p.urlProtocol,'gprt'); a.equal(p.win32RegValueName,'GPRT'); for (const key of ['updateUrl','downloadUrl','releaseNotesUrl','win32VersionedUpdate']) a.equal(p[key],undefined,key+' must be absent for manual releases');"
 
       - name: Package portable ZIP
         env:

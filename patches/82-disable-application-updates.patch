@@ -1,0 +1,76 @@
+diff --git a/src/vs/platform/update/common/update.config.contribution.ts b/src/vs/platform/update/common/update.config.contribution.ts
+--- a/src/vs/platform/update/common/update.config.contribution.ts
++++ b/src/vs/platform/update/common/update.config.contribution.ts
+@@ -3,7 +3,6 @@
+  *  Licensed under the MIT License. See License.txt in the project root for license information.
+  *--------------------------------------------------------------------------------------------*/
+ 
+-import { isWeb, isWindows } from '../../../base/common/platform.js';
+ import { PolicyCategory } from '../../../base/common/policy.js';
+ import { localize } from '../../../nls.js';
+ import { ConfigurationScope, Extensions as ConfigurationExtensions, IConfigurationRegistry } from '../../configuration/common/configurationRegistry.js';
+@@ -17,6 +16,7 @@
+ 	type: 'object',
+ 	properties: {
+ 		'update.mode': {
++			included: false,
+ 			type: 'string',
+ 			enum: ['none', 'manual', 'start', 'default'],
+ 			default: 'none',
+@@ -57,6 +57,7 @@
+ 			}
+ 		},
+ 		'update.channel': {
++			included: false,
+ 			type: 'string',
+ 			default: 'default',
+ 			scope: ConfigurationScope.APPLICATION,
+@@ -64,28 +65,31 @@
+ 			deprecationMessage: localize('deprecated', "This setting is deprecated, please use '{0}' instead.", 'update.mode')
+ 		},
+ 		'update.minReleaseAge': {
++			included: false,
+ 			type: 'integer',
+ 			default: 120,
+ 			scope: ConfigurationScope.APPLICATION,
+ 			description: localize('update.cooldown', "Control how old an update need to be before installing it (in hours)."),
+ 		},
+ 		'update.enableWindowsBackgroundUpdates': {
++			included: false,
+ 			type: 'boolean',
+-			default: true,
++			default: false,
+ 			scope: ConfigurationScope.APPLICATION,
+ 			title: localize('enableWindowsBackgroundUpdatesTitle', "Enable Background Updates"),
+ 			description: localize('enableWindowsBackgroundUpdates', "Enable to download and install new VS Code versions in the background."),
+-			included: isWindows && !isWeb
+ 		},
+ 		'update.showReleaseNotes': {
++			included: false,
+ 			type: 'boolean',
+-			default: true,
++			default: false,
+ 			scope: ConfigurationScope.APPLICATION,
+ 			description: localize('showReleaseNotes', "Show Release Notes after an update. The Release Notes are fetched from a Microsoft online service."),
+ 			tags: ['usesOnlineServices'],
+ 			agentsWindow: { default: false, readOnly: true },
+ 		},
+ 		'update.showPostInstallInfo': {
++			included: false,
+ 			type: 'boolean',
+ 			default: false,
+ 			experiment: { mode: 'auto' },
+@@ -94,11 +98,11 @@
+ 			tags: ['usesOnlineServices']
+ 		},
+ 		'update.titleBar': {
++			included: false,
+ 			type: 'boolean',
+-			default: true,
++			default: false,
+ 			scope: ConfigurationScope.APPLICATION,
+ 			description: localize('updateTitleBar', "Show the update indicator in the title bar."),
+-			included: !isWeb
+ 		}
+ 	}
+ });

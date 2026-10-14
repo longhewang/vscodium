@@ -1,0 +1,44 @@
+diff --git a/src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStarted.ts b/src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStarted.ts
+--- a/src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStarted.ts
++++ b/src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStarted.ts
+@@ -931,7 +931,7 @@
+ 
+ 		const header = $('.header', {},
+ 			$('h1.product-name.caption', {}, this.productService.nameLong),
+-			$('p.subtitle.description', {}, localize({ key: 'gettingStarted.editingEvolved', comment: ['Shown as subtitle on the Welcome page.'] }, "Editing evolved"))
++			$('p.subtitle.description', {}, localize({ key: 'gettingStarted.gprtSubtitle', comment: ['Shown as subtitle on the Welcome page. Translate the Chinese subtitle as: 6G Pervasive Ray Tracing Channel Simulator.'] }, "6G普适射线追踪信道仿真器"))
+ 		);
+ 
+ 		const leftColumn = $('.categories-column.categories-column-left', {},);
+@@ -963,27 +963,15 @@
+ 		const footer = $('.footer', {}, ...footerChildren);
+ 
+ 		const layoutLists = () => {
+-			if (gettingStartedList.itemCount) {
+-				this.container.classList.remove('noWalkthroughs');
+-				reset(rightColumn, gettingStartedList.getDomElement(), announcementList.getDomElement());
+-			}
+-			else {
+-				this.container.classList.add('noWalkthroughs');
+-				reset(rightColumn, announcementList.getDomElement());
+-			}
++			this.container.classList.remove('noWalkthroughs');
++			reset(rightColumn, announcementList.getDomElement());
+ 			setTimeout(() => this.categoriesPageScrollbar?.scanDomNode(), 50);
+ 			layoutRecentList();
+ 		};
+ 
+ 		const layoutRecentList = () => {
+-			if (this.container.classList.contains('noWalkthroughs')) {
+-				recentList.setLimit(10);
+-				reset(leftColumn, startList.getDomElement());
+-				reset(rightColumn, recentList.getDomElement());
+-			} else {
+-				recentList.setLimit(5);
+-				reset(leftColumn, startList.getDomElement(), recentList.getDomElement());
+-			}
++			recentList.setLimit(5);
++			reset(leftColumn, startList.getDomElement(), recentList.getDomElement());
+ 		};
+ 
+ 		gettingStartedList.onDidChange(layoutLists);

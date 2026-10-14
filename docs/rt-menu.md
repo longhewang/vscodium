@@ -1,8 +1,8 @@
 # RT menu contributions
 
 The fork applies `patches/80-rt-menubar.patch` during its normal VS Code build.
-It adds RT after Terminal and before Help. Chinese UI shows `射线追踪`; other
-languages show `RT`. The built-in command opens the command palette filtered to
+It adds RT after File and Edit, before Selection (the third built-in menu).
+Chinese UI shows `射线追踪`; other languages show `RT`. The built-in command opens the command palette filtered to
 RT. Extensions should use `category: "RT"` for discoverability.
 
 The fork exposes two contribution points:
@@ -15,7 +15,8 @@ Declare commands in `contributes.commands` and implement them with
 `group`, `when`, and command `enablement` work through the standard contribution
 handler. Inside RT, group names separate sections and `@number` orders items.
 For `menuBar/main`, group prefixes are ignored and the `@number` suffix positions
-the submenu in the built-in row: Terminal is 7, RT is 7.5, Help is 8.
+the submenu in the built-in row: File is 1, Edit is 2, RT is 2.5, Selection is 3,
+Terminal is 7, Help is 8.
 
 Extension submenu IDs, rather than translated labels, identify top-level menus.
 Different extensions can use identical labels without overwriting each other.

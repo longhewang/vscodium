@@ -25,6 +25,26 @@ function block(source, marker) {
 function compileMethod(source, marker, context) {
   return vm.runInNewContext(stripTypeScriptTypes(`class Subject { ${block(source, marker)} }; Subject`), context);
 }
+// Check the actual built-in registrations, rather than only a simulated row.
+const contributedMenus = [];
+const contributionMenuIds = Object.fromEntries([
+  'MenubarMainMenu', 'MenubarFileMenu', 'MenubarEditMenu', 'MenubarSelectionMenu',
+  'MenubarViewMenu', 'MenubarGoMenu', 'MenubarTerminalMenu', 'MenubarHelpMenu',
+  'MenubarPreferencesMenu', 'MenubarRTMenu'
+].map(name => [name, { id: name }]));
+const contribution = read('src/vs/workbench/browser/parts/titlebar/menubar.contribution.ts');
+vm.runInNewContext(contribution.replace(/^import .*;\r?\n/gm, ''), {
+  language: 'en', localize: (_key, text) => text,
+  MenuId: contributionMenuIds,
+  MenuRegistry: { appendMenuItem: (id, item) => contributedMenus.push({ id, item }) },
+  CommandsRegistry: { registerCommand() {} }, IsMacNativeContext: {}
+});
+const topLevel = contributedMenus
+  .filter(entry => entry.id === contributionMenuIds.MenubarMainMenu && !entry.item.when)
+  .sort((a, b) => a.item.order - b.item.order);
+assert.deepEqual(topLevel.slice(0, 3).map(entry => entry.item.submenu.id),
+  ['MenubarFileMenu', 'MenubarEditMenu', 'MenubarRTMenu']);
+
 class SubmenuItemAction {
   constructor(id, title) { this.item = { submenu: { id }, title }; }
 }
@@ -78,19 +98,20 @@ m.mnemonicLabel = label => label;
 m.setMenuById = (menu, id) => menu.items.push({ id });
 m.menubarMenus = {
   'api:first': { label: 'Tools', items: [{}] },
-  File: { items: [{}] }, Terminal: { items: [{}] },
+  File: { items: [{}] }, Edit: { items: [{}] },
   RT: { label: '灏勭嚎杩借釜', items: [{}] },
   'api:second': { label: 'Tools', items: [{}] },
   'api:empty': { label: 'Empty', items: [] },
+  Selection: { items: [{}] }, Terminal: { items: [{}] },
   Help: { items: [{}] }, 'api:last': { label: 'Last', items: [{}] }
 };
 const menu = new Menu();
 const help = new MenuItem({ id: 'Help', role: 'help' });
-menu.items.push(new MenuItem({ id: 'File' }), new MenuItem({ id: 'Terminal' }), help);
+menu.items.push(new MenuItem({ id: 'File' }), new MenuItem({ id: 'Edit' }), new MenuItem({ id: 'Selection' }), new MenuItem({ id: 'Terminal' }), help);
 m.appendContributedMenus(menu);
-assert.deepEqual(menu.items.map(item => item.id), ['api:first', 'File', 'Terminal', 'RT', 'api:second', 'Help', 'api:last']);
+assert.deepEqual(menu.items.map(item => item.id), ['api:first', 'File', 'Edit', 'RT', 'api:second', 'Selection', 'Terminal', 'Help', 'api:last']);
 assert.equal(menu.items[3].label, '灏勭嚎杩借釜');
-assert.equal(menu.items[5], help, 'Preserve native built-in menu roles');
+assert.equal(menu.items[7], help, 'Preserve native built-in menu roles');
 
 const extension = read('src/vs/workbench/services/actions/common/menusExtensionPoint.ts');
 const handlerBody = block(extension, '\nmenusExtensionPoint.setHandler(extensions =>');
@@ -113,13 +134,13 @@ const handler = vm.runInNewContext(stripTypeScriptTypes(handlerBody.replace('men
 });
 const collector = { error: text => errors.push(text), warn() {}, info() {} };
 handler([{ collector, description: {}, value: {
-  'menuBar/main': [{ command: 'rt.start' }, { submenu: 'rt.tools', group: 'navigation@7.6' }],
+  'menuBar/main': [{ command: 'rt.start' }, { submenu: 'rt.tools', group: 'navigation@2.6' }],
   'menuBar/rt': [{ command: 'rt.start', group: '1_run@10', when: 'rt.ready' }]
 } }]);
 assert.equal(errors.length, 1, 'Reject commands placed directly on the top-level menu bar');
 assert.equal(registrations.length, 2);
 assert.equal(registrations[0].item.submenu.id, 'api:rt.tools');
-assert.equal(registrations[0].item.order, 7.6);
+assert.equal(registrations[0].item.order, 2.6);
 assert.equal(registrations[0].item.group, undefined, 'Top-level order shares the built-in menu row');
 assert.equal(registrations[1].item.order, 10);
 assert.equal(registrations[1].item.when, 'rt.ready');

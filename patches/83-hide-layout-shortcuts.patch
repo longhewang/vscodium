@@ -1,0 +1,12 @@
+diff --git a/src/vs/workbench/browser/parts/titlebar/titlebarPart.ts b/src/vs/workbench/browser/parts/titlebar/titlebarPart.ts
+--- a/src/vs/workbench/browser/parts/titlebar/titlebarPart.ts
++++ b/src/vs/workbench/browser/parts/titlebar/titlebarPart.ts
+@@ -895,7 +895,7 @@
+ 	}
+ 
+ 	private get layoutControlEnabled(): boolean {
+-		return this.configurationService.getValue<boolean>(LayoutSettings.LAYOUT_ACTIONS) !== false;
++		return false; // 6GPRT does not expose title bar layout shortcuts.
+ 	}
+ 
+ 	protected get isCommandCenterVisible() {

@@ -17,7 +17,7 @@
         { "command": "rt.example.trace", "group": "1_run@10" }
       ],
       "menuBar/main": [
-        { "submenu": "rt.example.tools", "group": "navigation@7.7" }
+        { "submenu": "rt.example.tools", "group": "navigation@2.7" }
       ],
       "rt.example.tools": [
         { "command": "rt.example.trace", "group": "1_run@10" }

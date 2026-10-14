@@ -3,6 +3,9 @@
 
 set -e
 
+# 6GPRT releases are distributed manually; never enable the application updater.
+export DISABLE_UPDATE="yes"
+
 if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
   cp -rp src/insider/* vscode/
 else
@@ -49,20 +52,6 @@ setpath "product" "reportIssueUrl" "https://github.com/VSCodium/vscodium/issues/
 setpath "product" "requestFeatureUrl" "https://go.microsoft.com/fwlink/?LinkID=533482"
 setpath "product" "tipsAndTricksUrl" "https://go.microsoft.com/fwlink/?linkid=852118"
 setpath "product" "twitterUrl" "https://go.microsoft.com/fwlink/?LinkID=533687"
-
-if [[ "${DISABLE_UPDATE}" != "yes" ]]; then
-  setpath "product" "updateUrl" "https://raw.githubusercontent.com/VSCodium/versions/refs/heads/master"
-
-  if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
-    setpath "product" "downloadUrl" "https://github.com/VSCodium/vscodium-insiders/releases"
-  else
-    setpath "product" "downloadUrl" "https://github.com/VSCodium/vscodium/releases"
-  fi
-
-  # if [[ "${OS_NAME}" == "windows" ]]; then
-  #   setpath_json "product" "win32VersionedUpdate" "true"
-  # fi
-fi
 
 if [[ "${VSCODE_QUALITY}" == "insider" ]]; then
   setpath "product" "nameShort" "VSCodium - Insiders"
@@ -125,6 +114,10 @@ fi
 setpath_json "product" "tunnelApplicationConfig" '{}'
 
 jsonTmp=$( jq -s '.[0] * .[1]' product.json ../product.json )
+echo "${jsonTmp}" > product.json && unset jsonTmp
+
+# Strip inherited update feeds and release-note links after merging product overrides.
+jsonTmp=$( jq 'del(.updateUrl, .downloadUrl, .releaseNotesUrl, .win32VersionedUpdate)' product.json )
 echo "${jsonTmp}" > product.json && unset jsonTmp
 
 cat product.json
