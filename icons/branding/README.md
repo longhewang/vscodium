@@ -20,7 +20,9 @@ inkscape icons/branding/logo.svg --export-width=1024 --export-height=1024 --expo
 ```
 
 The generator updates stable Windows application and file-association icons,
-Start menu tiles, Inno Setup bitmaps, WiX bitmaps and the workbench mark.
+Start menu tiles, Inno Setup bitmaps, WiX bitmaps, the workbench mark and all four theme variants of the empty-editor
+watermark (`letterpress-*.svg`). Watermarks retain the original theme colors and
+opacity while using the custom logo paths.
 ICO files include 16, 20, 24, 32, 48, 64, 96, 128 and 256 pixel representations.
 Generated resources are committed, so GitHub builds need no icon tooling.
 Existing macOS, Linux and Insiders resources are outside this Windows change.

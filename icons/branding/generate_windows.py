@@ -1,6 +1,7 @@
 """Generate stable Windows resources from the transparent logo-1024.png export."""
 from pathlib import Path
 from shutil import copyfile
+import re
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -19,7 +20,24 @@ def stamp(size, logo_size, position=None, transparent=False):
     return canvas
 
 
+def generate_letterpress():
+    """Use the custom vector mark for the empty editor in every theme."""
+    svg = (ROOT / 'icons/branding/logo.svg').read_text(encoding='utf-8')
+    media = ROOT / 'src/stable/src/vs/workbench/browser/parts/editor/media'
+    variants = {
+        'light': ('#B2B2B2', '0.1'),
+        'dark': ('#B2B2B2', '0.3'),
+        'hcLight': ('#B2B2B2', '1'),
+        'hcDark': ('#3C3C3C', '1'),
+    }
+    for theme, (color, opacity) in variants.items():
+        mark = re.sub(r'fill="#[0-9a-fA-F]+"', f'fill="{color}" fill-opacity="{opacity}"', svg)
+        mark = mark.replace('<title>Nanjing Zizheng Zhixin</title>', '<title>6GPRT</title>')
+        (media / f'letterpress-{theme}.svg').write_text(mark, encoding='utf-8', newline='\n')
+
+
 def main():
+    generate_letterpress()
     SOURCE.resize((256, 256), Image.Resampling.LANCZOS).save(WIN / 'code.ico', sizes=SIZES)
     stamp((70, 70), 70, transparent=True).save(WIN / 'code_70x70.png')
     stamp((150, 150), 150, transparent=True).save(WIN / 'code_150x150.png')

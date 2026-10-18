@@ -1,16 +1,46 @@
 diff --git a/src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStarted.ts b/src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStarted.ts
 --- a/src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStarted.ts
 +++ b/src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStarted.ts
-@@ -931,7 +931,7 @@
+@@ -117,11 +117,9 @@
+ };
+ 
+ type RecentEntry = (IRecentFolder | IRecentWorkspace) & { id: string };
+-type AnnouncementEntry = { id: string, title: string, url: string };
+ 
+ const REDUCED_MOTION_KEY = 'workbench.welcomePage.preferReducedMotion';
+ 
+-const BUILTIN_ANNOUNCEMENTS: AnnouncementEntry[] = [/* BUILTIN_ANNOUNCEMENTS */];
+ 
+ export class GettingStartedPage extends EditorPane {
+ 
+@@ -156,8 +154,6 @@
+ 	private readonly recentlyOpenedList = this._register(new MutableDisposable<GettingStartedIndexList<RecentEntry>>());
+ 	private readonly startList = this._register(new MutableDisposable<GettingStartedIndexList<IWelcomePageStartEntry>>());
+ 	private readonly gettingStartedList = this._register(new MutableDisposable<GettingStartedIndexList<IResolvedWalkthrough>>());
+-	private announcementList?: GettingStartedIndexList<AnnouncementEntry>;
+-	private announcementData?: AnnouncementEntry[];
+ 
+ 	private stepsSlide!: HTMLElement;
+ 	private categoriesSlide!: HTMLElement;
+@@ -931,16 +927,14 @@
  
  		const header = $('.header', {},
  			$('h1.product-name.caption', {}, this.productService.nameLong),
 -			$('p.subtitle.description', {}, localize({ key: 'gettingStarted.editingEvolved', comment: ['Shown as subtitle on the Welcome page.'] }, "Editing evolved"))
-+			$('p.subtitle.description', {}, localize({ key: 'gettingStarted.gprtSubtitle', comment: ['Shown as subtitle on the Welcome page. Translate the Chinese subtitle as: 6G Pervasive Ray Tracing Channel Simulator.'] }, "6G普适射线追踪信道仿真器"))
++			$('p.subtitle.description', {}, "6G Pervasive Ray Tracing Channel Simulator")
  		);
  
  		const leftColumn = $('.categories-column.categories-column-left', {},);
-@@ -963,27 +963,15 @@
+-		const rightColumn = $('.categories-column.categories-column-right', {},);
+ 
+ 		const startList = this.buildStartList();
+ 		const recentList = this.buildRecentlyOpenedList();
+ 		const gettingStartedList = this.buildGettingStartedWalkthroughsList();
+-		const announcementList = await this.buildAnnouncementList();
+ 
+ 		const footerChildren: HTMLElement[] = [];
+ 		if (canShowAgentsBanner(this.chatEntitlementService)) {
+@@ -963,33 +957,20 @@
  		const footer = $('.footer', {}, ...footerChildren);
  
  		const layoutLists = () => {
@@ -23,7 +53,6 @@ diff --git a/src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStart
 -				reset(rightColumn, announcementList.getDomElement());
 -			}
 +			this.container.classList.remove('noWalkthroughs');
-+			reset(rightColumn, announcementList.getDomElement());
  			setTimeout(() => this.categoriesPageScrollbar?.scanDomNode(), 50);
  			layoutRecentList();
  		};
@@ -42,3 +71,70 @@ diff --git a/src/vs/workbench/contrib/welcomeGettingStarted/browser/gettingStart
  		};
  
  		gettingStartedList.onDidChange(layoutLists);
+ 		layoutLists();
+ 
+-		reset(this.categoriesSlide, $('.gettingStartedCategoriesContainer', {}, header, leftColumn, rightColumn, footer,));
++		reset(this.categoriesSlide, $('.gettingStartedCategoriesContainer', {}, header, leftColumn, footer,));
+ 		this.categoriesPageScrollbar?.scanDomNode();
+ 
+ 		this.updateCategoryProgress();
+@@ -1154,59 +1135,6 @@
+ 			const workspacesWithID = this.filterRecentlyOpened(workspaces);
+ 			this.recentlyOpenedList.value?.setEntries(workspacesWithID);
+ 		}).catch(onUnexpectedError);
+-	}
+-
+-	private async buildAnnouncementList(): Promise<GettingStartedIndexList<AnnouncementEntry>> {
+-		const renderAnnouncement = (announcement: AnnouncementEntry) => {
+-			const { title, url } = announcement;
+-			const li = $('li');
+-
+-			const anchor: HTMLLinkElement = $('a');
+-			anchor.href = url;
+-			anchor.innerText = title;
+-			anchor.target = '_blank';
+-			li.appendChild(anchor);
+-
+-			return li;
+-		};
+-
+-		if (this.announcementList) { this.announcementList.dispose(); }
+-
+-		const announcementList = this.announcementList = new GettingStartedIndexList({
+-			title: localize('announcements', "!!APP_NAME!! Announcements"),
+-			klass: 'announcements',
+-			limit: 5,
+-			empty: $('.empty-recent', {}, localize('noAnnouncements', "There are no current announcements.")),
+-			renderElement: renderAnnouncement,
+-			contextService: this.contextService
+-		});
+-
+-		if (!this.announcementData) {
+-			const showExtras = this.configurationService.getValue<boolean>('workbench.welcomePage.extraAnnouncements');
+-
+-			if (showExtras) {
+-				const branch = this.productService.quality === 'insider' ? 'insider' : 'master';
+-				await fetch(`https://raw.githubusercontent.com/!!GH_REPO_PATH!!/${branch}/announcements-extra.json`)
+-					.then(async res => {
+-						if (res.ok) {
+-							var extraAnnouncements = await res.json() as AnnouncementEntry[];
+-
+-							this.announcementData = [...extraAnnouncements, ...BUILTIN_ANNOUNCEMENTS];
+-						} else {
+-							this.announcementData = BUILTIN_ANNOUNCEMENTS;
+-						}
+-					})
+-					.catch(err => {
+-						this.announcementData = BUILTIN_ANNOUNCEMENTS;
+-					});
+-			} else {
+-				this.announcementData = BUILTIN_ANNOUNCEMENTS;
+-			}
+-		}
+-
+-		announcementList.setEntries(this.announcementData);
+-
+-		return announcementList;
+ 	}
+ 
+ 	private buildStartList(): GettingStartedIndexList<IWelcomePageStartEntry> {
