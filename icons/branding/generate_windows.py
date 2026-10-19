@@ -38,6 +38,8 @@ def generate_letterpress():
 
 def main():
     generate_letterpress()
+    copyfile(ROOT / 'icons/branding/logo.svg', ROOT / 'src/stable/resources/linux/code.svg')
+    copyfile(ROOT / 'icons/branding/logo-1024.png', ROOT / 'src/stable/resources/linux/code.png')
     SOURCE.resize((256, 256), Image.Resampling.LANCZOS).save(WIN / 'code.ico', sizes=SIZES)
     stamp((70, 70), 70, transparent=True).save(WIN / 'code_70x70.png')
     stamp((150, 150), 150, transparent=True).save(WIN / 'code_150x150.png')

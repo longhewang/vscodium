@@ -1,0 +1,133 @@
+name: Dev - 6GPRT Ubuntu ZIP
+
+on:
+  push:
+    branches:
+      - dev
+    paths-ignore:
+      - "**/*.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dev-linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Ubuntu ${{ matrix.arch }} ZIP
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-24.04
+            machine: x86_64
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            machine: aarch64
+    defaults:
+      run:
+        shell: bash
+    env:
+      APP_NAME: 6GPRT
+      BINARY_NAME: 6gprt
+      ORG_NAME: ${{ github.repository_owner }}
+      GH_REPO_PATH: ${{ github.repository }}
+      ASSETS_REPOSITORY: ${{ github.repository }}
+      CI_BUILD: "no"
+      OS_NAME: linux
+      VSCODE_ARCH: ${{ matrix.arch }}
+      VSCODE_QUALITY: stable
+      SHOULD_BUILD: "yes"
+      SHOULD_BUILD_REH: "no"
+      SHOULD_BUILD_REH_WEB: "no"
+      SHOULD_BUILD_DEB: "no"
+      SHOULD_BUILD_RPM: "no"
+      SHOULD_BUILD_TAR: "no"
+      DISABLE_UPDATE: "yes"
+      npm_config_arch: ${{ matrix.arch }}
+      npm_config_target_arch: ${{ matrix.arch }}
+      npm_config_python: python
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y build-essential pkg-config libx11-dev libxkbfile-dev libsecret-1-dev libkrb5-dev libssl-dev libgtk-3-dev libnss3 libgbm-dev libasound2t64 jq zip unzip
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Setup Rust
+        uses: actions-rust-lang/setup-rust-toolchain@ecabd13d1c56bd1345c230e542e9144811ad706f # v2.0.0
+
+      - name: Verify native build tools
+        run: |
+          test "$(uname -m)" = "${{ matrix.machine }}"
+          node --version
+          python --version
+          gcc --version
+          rustup --version
+          cargo --version
+          jq --version
+          zip -v
+
+      - name: Fetch pinned VS Code source
+        run: ./get_repo.sh
+
+      - name: Verify RT menu patch and behavior
+        run: |
+          git -C vscode apply ../patches/80-rt-menubar.patch
+          node dev/test_rt_menu_patch.cjs vscode
+          git -C vscode apply -R ../patches/80-rt-menubar.patch
+
+      - name: Build application and CLI
+        run: ./build.sh
+
+      - name: Verify 6GPRT application identity and architecture
+        run: |
+          app="VSCode-linux-${VSCODE_ARCH}"
+          test -x "$app/6gprt"
+          test -x "$app/bin/6gprt"
+          test -x "$app/bin/6gprt-tunnel"
+          file "$app/6gprt"
+          case "$VSCODE_ARCH" in
+            x64) file "$app/6gprt" | grep -q 'x86-64' ;;
+            arm64) file "$app/6gprt" | grep -q 'aarch64' ;;
+          esac
+          node -e "const p=require('./'+process.env.APP_DIR+'/resources/app/product.json'); const a=require('node:assert/strict'); a.equal(p.nameShort,'6GPRT'); a.equal(p.nameLong,'6GPRT'); a.equal(p.applicationName,'6gprt'); a.equal(p.urlProtocol,'gprt'); for (const key of ['updateUrl','downloadUrl','releaseNotesUrl','win32VersionedUpdate']) a.equal(p[key],undefined,key+' must be absent for manual releases');"
+        env:
+          APP_DIR: VSCode-linux-${{ matrix.arch }}
+
+      - name: Package portable ZIP
+        run: |
+          mkdir -p assets
+          output="$GITHUB_WORKSPACE/assets/6GPRT-linux-${VSCODE_ARCH}-${RELEASE_VERSION}.zip"
+          cd "VSCode-linux-${VSCODE_ARCH}"
+          # Preserve Unix executable permissions and symbolic links in the ZIP.
+          zip -q -r -y -9 "$output" .
+          unzip -tq "$output"
+
+      - name: Upload portable ZIP
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: 6GPRT-linux-${{ matrix.arch }}-zip
+          path: assets/6GPRT-linux-${{ matrix.arch }}-*.zip
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14

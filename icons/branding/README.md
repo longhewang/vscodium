@@ -25,9 +25,16 @@ watermark (`letterpress-*.svg`). Watermarks retain the original theme colors and
 opacity while using the custom logo paths.
 ICO files include 16, 20, 24, 32, 48, 64, 96, 128 and 256 pixel representations.
 Generated resources are committed, so GitHub builds need no icon tooling.
-Existing macOS, Linux and Insiders resources are outside this Windows change.
+Existing macOS and Insiders resources are outside this branding change.
 
 The `Dev - 6GPRT Windows ZIP` workflow builds `dev` on pushes or manual dispatch.
 Download `6GPRT-windows-x64-zip` after it succeeds. It contains only the portable
 `6GPRT-win32-x64-<version>.zip`; no MSI or EXE installers are generated. The stable
 app is named `6GPRT`, using the same supplied company logo.
+
+The `Dev - 6GPRT Ubuntu ZIP` workflow builds natively on Ubuntu 24.04 for
+x86_64 (`x64`) and aarch64 (`arm64`). Download `6GPRT-linux-x64-zip` or
+`6GPRT-linux-arm64-zip`; these contain only the application ZIP, including the
+CLI, with Unix permissions and symlinks preserved. No DEB, RPM, Snap, AppImage,
+server or standalone CLI archives are generated. The Linux application icons
+use the same custom logo as Windows.
