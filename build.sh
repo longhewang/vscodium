@@ -39,6 +39,10 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
     if [[ "${CI_BUILD}" == "no" ]]; then
       . ../build/windows/rtf/make.sh
 
+      if [[ "${VSCODE_ARCH}" == "x64" ]]; then
+        . ../build/windows/install_inno_update.sh
+      fi
+
       # generate Group Policy definitions
       npm run copy-policy-dto --prefix build
       node build/lib/policies/policyGenerator.ts build/lib/policies/policyData.jsonc win32
@@ -75,13 +79,11 @@ if [[ "${SHOULD_BUILD}" == "yes" ]]; then
   fi
 
   if [[ "${SHOULD_BUILD_REH}" != "no" ]]; then
-    npm run gulp minify-vscode-reh
-    npm run gulp "vscode-reh-${VSCODE_PLATFORM}-${VSCODE_ARCH}-min-ci"
+    npm run gulp "vscode-reh-${VSCODE_PLATFORM}-${VSCODE_ARCH}-min-packing"
   fi
 
   if [[ "${SHOULD_BUILD_REH_WEB}" != "no" ]]; then
-    npm run gulp minify-vscode-reh-web
-    npm run gulp "vscode-reh-web-${VSCODE_PLATFORM}-${VSCODE_ARCH}-min-ci"
+    npm run gulp "vscode-reh-web-${VSCODE_PLATFORM}-${VSCODE_ARCH}-min-packing"
   fi
 
   cd ..

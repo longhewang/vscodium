@@ -1,0 +1,124 @@
+diff --git a/src/vs/workbench/browser/workbench.contribution.ts b/src/vs/workbench/browser/workbench.contribution.ts
+--- a/src/vs/workbench/browser/workbench.contribution.ts
++++ b/src/vs/workbench/browser/workbench.contribution.ts
+@@ -962,7 +962,7 @@
+ 			},
+ 			[LayoutSettings.COMMAND_CENTER]: {
+ 				type: 'boolean',
+-				default: true,
++				default: false,
+ 				markdownDescription: isWeb ?
+ 					localize('window.commandCenterWeb', "Show command launcher together with the window title.") :
+ 					localize({ key: 'window.commandCenter', comment: ['{0}, {1} is a placeholder for a setting identifier.'] }, "Show command launcher together with the window title. This setting only has an effect when {0} is not set to {1}.", '`#window.customTitleBarVisibility#`', '`never`'),
+diff --git a/src/vs/workbench/browser/parts/titlebar/menubar.contribution.ts b/src/vs/workbench/browser/parts/titlebar/menubar.contribution.ts
+--- a/src/vs/workbench/browser/parts/titlebar/menubar.contribution.ts
++++ b/src/vs/workbench/browser/parts/titlebar/menubar.contribution.ts
+@@ -30,17 +30,7 @@
+ 	order: 2
+ });
+ 
+-MenuRegistry.appendMenuItem(MenuId.MenubarMainMenu, {
+-	submenu: MenuId.MenubarSelectionMenu,
+-	title: {
+-		value: 'Selection',
+-		original: 'Selection',
+-		mnemonicTitle: localize({ key: 'mSelection', comment: ['&& denotes a mnemonic'] }, "&&Selection")
+-	},
+-	order: 3
+-});
+-
+ MenuRegistry.appendMenuItem(MenuId.MenubarMainMenu, {
+ 	submenu: MenuId.MenubarViewMenu,
+ 	title: {
+ 		value: 'View',
+@@ -50,17 +40,7 @@
+ 	order: 4
+ });
+ 
+-MenuRegistry.appendMenuItem(MenuId.MenubarMainMenu, {
+-	submenu: MenuId.MenubarGoMenu,
+-	title: {
+-		value: 'Go',
+-		original: 'Go',
+-		mnemonicTitle: localize({ key: 'mGoto', comment: ['&& denotes a mnemonic'] }, "&&Go")
+-	},
+-	order: 5
+-});
+-
+ MenuRegistry.appendMenuItem(MenuId.MenubarMainMenu, {
+ 	submenu: MenuId.MenubarTerminalMenu,
+ 	title: {
+ 		value: 'Terminal',
+diff --git a/src/vs/workbench/contrib/debug/browser/debug.contribution.ts b/src/vs/workbench/contrib/debug/browser/debug.contribution.ts
+--- a/src/vs/workbench/contrib/debug/browser/debug.contribution.ts
++++ b/src/vs/workbench/contrib/debug/browser/debug.contribution.ts
+@@ -20,7 +20,7 @@
+ import { Registry } from '../../../../platform/registry/common/platform.js';
+ import { EditorPaneDescriptor, IEditorPaneRegistry } from '../../../browser/editor.js';
+ import { ViewPaneContainer } from '../../../browser/parts/views/viewPaneContainer.js';
+-import { FocusedViewContext, IsSessionsWindowContext } from '../../../common/contextkeys.js';
++import { FocusedViewContext } from '../../../common/contextkeys.js';
+ import { IWorkbenchContributionsRegistry, Extensions as WorkbenchExtensions, WorkbenchPhase, registerWorkbenchContribution2 } from '../../../common/contributions.js';
+ import { EditorExtensions } from '../../../common/editor.js';
+ import { IViewContainersRegistry, IViewsRegistry, ViewContainer, ViewContainerLocation, Extensions as ViewExtensions } from '../../../common/views.js';
+@@ -258,16 +258,6 @@
+ 
+ // Debug menu
+ 
+-MenuRegistry.appendMenuItem(MenuId.MenubarMainMenu, {
+-	submenu: MenuId.MenubarDebugMenu,
+-	title: {
+-		...nls.localize2('runMenu', "Run"),
+-		mnemonicTitle: nls.localize({ key: 'mRun', comment: ['&& denotes a mnemonic'] }, "&&Run")
+-	},
+-	order: 6,
+-	when: IsSessionsWindowContext.negate()
+-});
+-
+ MenuRegistry.appendMenuItem(MenuId.MenubarDebugMenu, {
+ 	group: '1_debug',
+ 	command: {
+diff --git a/src/vs/workbench/browser/parts/paneCompositeBar.ts b/src/vs/workbench/browser/parts/paneCompositeBar.ts
+--- a/src/vs/workbench/browser/parts/paneCompositeBar.ts
++++ b/src/vs/workbench/browser/parts/paneCompositeBar.ts
+@@ -337,6 +337,9 @@
+ 
+ 	private onDidRegisterViewContainers(viewContainers: readonly ViewContainer[]): void {
+ 		for (const viewContainer of viewContainers) {
++			if (!this.isAllowedInBar(viewContainer.id)) {
++				continue;
++			}
+ 			this.addComposite(viewContainer);
+ 
+ 			// Pin it by default if it is new
+@@ -514,13 +517,20 @@
+ 		this.compositeBar.layout(new Dimension(width, height));
+ 	}
+ 
++	private isAllowedInBar(id: string): boolean {
++		return this.part !== Parts.ACTIVITYBAR_PART || id === 'workbench.view.explorer' || id === 'workbench.view.search' || id === 'workbench.view.extensions';
++	}
++
+ 	private getViewContainer(id: string): ViewContainer | undefined {
++		if (!this.isAllowedInBar(id)) {
++			return undefined;
++		}
+ 		const viewContainer = this.viewDescriptorService.getViewContainerById(id);
+ 		return viewContainer && this.viewDescriptorService.getViewContainerLocation(viewContainer) === this.location ? viewContainer : undefined;
+ 	}
+ 
+ 	private getViewContainers(): readonly ViewContainer[] {
+-		return this.viewDescriptorService.getViewContainersByLocation(this.location);
++		return this.viewDescriptorService.getViewContainersByLocation(this.location).filter(container => this.isAllowedInBar(container.id));
+ 	}
+ 
+ 	private updateCompositeBarItemsFromStorage(retainExisting: boolean): void {
+@@ -638,7 +648,7 @@
+ 			}
+ 		}
+ 
+-		return this._cachedViewContainers;
++		return this._cachedViewContainers.filter(container => this.isAllowedInBar(container.id));
+ 	}
+ 
+ 	private storeCachedViewContainersState(cachedViewContainers: ICachedViewContainer[]): void {
